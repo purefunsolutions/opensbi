@@ -145,7 +145,15 @@ static int optee_transform_response(void *tx, u32 tx_len,
 
 	/* Copy a1-a4 to rx, skipping a0 (TEEABI_OPTEED_RETURN_*) */
 	sbi_memcpy(rx, &(((ulong *)tx)[1]), copy_len);
-	*rx_len = copy_len;
+	/*
+	 * rx is the data part of the caller's TEE_COMMUNICATE response, after
+	 * its STATUS word, and *rx_len comes back to the caller as the
+	 * length of that whole response: count STATUS too. Without it the
+	 * caller drops the last four bytes of a3, which on RV64 are the
+	 * upper half of a3 (zero for OP-TEE's 32-bit return values) and on
+	 * RV32 all of it.
+	 */
+	*rx_len = sizeof(u32) + copy_len;
 
 	return SBI_OK;
 }
